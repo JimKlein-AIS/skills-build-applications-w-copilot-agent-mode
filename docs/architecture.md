@@ -30,20 +30,20 @@ OctoFit Tracker is a three-tier application for a school fitness program. The st
 
 Record your plan here before editing code.
 
-- Presentation tier decision:
-- Logic tier decision:
-- Data tier decision:
-- Activity tracking approach:
-- Team management approach:
-- Leaderboard approach:
-- Workout suggestions approach:
+- Presentation tier decision: Pages stay thin and fetch only through the shared API client in `octofit-tracker/frontend/src/api`. Replace the `CapabilityCard` placeholder with loading, empty, accessible-alert, and data states. No authentication; it stays a follow-up challenge.
+- Logic tier decision: Express routes in `backend/src` delegate to `backend/src/services/octofitService.ts`. Services validate input and return deliberate 4xx responses. Points, rankings, and suggestions are computed here, never in the UI or models.
+- Data tier decision: Mongoose models own required-field validation (`User`, `Team`, `Activity`, `Workout`). Seed data stays in `src/scripts/seed.ts`. Derived values such as `points` and `occurredAt` are stored by the logic tier at creation time.
+- Activity tracking approach: Validate `userId` and `teamId` as ObjectIds and confirm both exist before writing, returning `4xx` otherwise. Compute `points` from `type` and `minutes` with one rule in the service, and set `occurredAt` on creation.
+- Team management approach: Reject a missing `name` with `400`. Store `name`, `mascot`, and `members` as submitted, and return them unchanged from `GET /api/teams`.
+- Leaderboard approach: Aggregate activity points per team, sort descending, and add a 1-based `rank`. Teams with no activity still appear with `totalPoints: 0`.
+- Workout suggestions approach: Look up the user by email and return `404` if none matches. Derive `focus` from the user's goal or most frequent recent activity type, and set `reason` to a sentence explaining that choice.
 
 ## Test plan
 
 Record the commands you run and what each failure means.
 
-- Data-tier command: `npm run test:data --prefix octofit-tracker/backend`
-- API command: `npm run test:api --prefix octofit-tracker/backend`
-- Frontend command: `npm test --prefix octofit-tracker/frontend`
-- Backend build command: `npm run build --prefix octofit-tracker/backend`
-- Frontend build command: `npm run build --prefix octofit-tracker/frontend`
+- Data-tier command: `npm run test:data --prefix octofit-tracker/backend` runs `octofit-tracker/backend/tests/data.contract.test.ts`. A failure means a model is missing a required-field validator. Initially 4 of 5 tests fail; the seeding test passes.
+- API command: `npm run test:api --prefix octofit-tracker/backend` runs `octofit-tracker/backend/tests/api.contract.test.ts`. A `501` means a service stub is still in place. A wrong status or body means a route or service does not yet meet the contract in the table above. Initially 4 of 4 tests fail.
+- Frontend command: `npm test --prefix octofit-tracker/frontend` runs `octofit-tracker/frontend/tests/app.contract.test.tsx`. A failure that finds "Implementation pending" means the `CapabilityCard` placeholder is still rendered. Initially 15 of 15 tests fail.
+- Backend build command: `npm run build --prefix octofit-tracker/backend` runs `tsc --noEmit`. A failure means a type error in the backend source or tests.
+- Frontend build command: `npm run build --prefix octofit-tracker/frontend`. A failure means a type or bundling error in the frontend source.
